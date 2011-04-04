@@ -287,7 +287,7 @@ void transform(Pixel *obmp, Pixel *ibmp) {
         {
             obmp[i] = ibmp[(int)xi + ((int)yi)*width];
         } else {
-            obmp[i] = pixel(0xff,0,0);//transpColor;
+            obmp[i] = transpColor;
         }
     }
 
