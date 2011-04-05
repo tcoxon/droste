@@ -233,6 +233,13 @@ void copy_headers(FILE *ofp, FILE *ifp) {
 }
 
 int main(int argc, char *argv[]) {
+    int show_eog = 0;
+
+    if (argc == 3 && strcmp(argv[2], "-eog") == 0) {
+        show_eog = 1;
+        argc = 2;
+    }
+
     if (argc != 2) {
         fputs("Usage: droste file.bmp\n", stderr);
         return 1;
@@ -264,6 +271,12 @@ int main(int argc, char *argv[]) {
                 read_bitmap(fp, inBitmap);
                 transform(outBitmap, inBitmap);
                 write_bitmap(ofp, outBitmap);
+
+                if (show_eog) {
+                    char buf[256];
+                    sprintf(buf, "eog %s", out_fname);
+                    retval = system(buf);
+                }
 
                 fclose(ofp);
             }
