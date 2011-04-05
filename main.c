@@ -1,16 +1,10 @@
 
 #include <stdlib.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <math.h>
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
+#include "droste.h"
 
 typedef struct {
     uint16 fileType;    /* File type id (always 0x4d42 "BM") */
@@ -37,15 +31,9 @@ typedef struct {
     uint32 compression; /* Compression methods used */
 } __attribute__((__packed__)) Bitmap3x4xHeaderStart;
 
-typedef struct {
-    uint8 r, g, b;
-} Pixel;
-
-uint32 width, height;
 uint32 bitmapOffset, bitsPerPixel;
 uint32 fileSize;
 Pixel *inBitmap, *outBitmap;
-Pixel transpColor;
 
 
 int check_2x_bitmap(FILE *fp, BitmapFileHeader *file_header, uint32 size) {
@@ -145,15 +133,6 @@ Pixel *alloc_bitmap(void) {
     return malloc(sizeof(Pixel) * width * height);
 }
 
-Pixel pixel(uint8 r, uint8 g, uint8 b) {
-    Pixel result = {r, g, b};
-    return result;
-}
-
-int pixel_eq(Pixel x, Pixel y) {
-    return x.r == y.r && x.g == y.g && x.b == y.b;
-}
-
 void read_bitmap(FILE *fp, Pixel *obmp) {
     int i = 0;
 
@@ -251,46 +230,6 @@ void copy_headers(FILE *ofp, FILE *ifp) {
         fputs("Couldn't copy bitmap headers", stderr);
         exit(7);
     }
-}
-
-void transform(Pixel *obmp, Pixel *ibmp) {
-    int i;
-    transpColor = ibmp[width*height/2 + width/2];
-    printf("Transparent (hex color): #%02x%02x%02x\n",
-        transpColor.r, transpColor.g, transpColor.b);
-
-    const double two_pi = 2.0 * M_PI;
-    double t_yo_scale = two_pi / height;
-    double r_xo_scale = sqrt(width * width + height * height) / width;
-    for (i = 0; i < width*height; i++) {
-        int xo = i % width,
-            yo = i / width;
-        double t = (yo + 0.0) * t_yo_scale,
-               r = (xo + 0.0) * r_xo_scale;
-               
-        double xi = r*cos(t) + width/2,
-               yi = r*sin(t) + height/2;
-
-        /* Reverse transform */
-        /*{
-            xi -= width/2;
-            yi -= height/2;
-            r = sqrt(xi*xi + yi*yi);
-            t = atan2(yi, xi);
-            if (t < 0) t += two_pi;
-            xi = r / r_xo_scale;
-            yi = t / t_yo_scale;
-        }*/
-
-        if (0 <= xi && xi < width &&
-            0 <= yi && yi < height)
-        {
-            obmp[i] = ibmp[(int)xi + ((int)yi)*width];
-        } else {
-            obmp[i] = transpColor;
-        }
-    }
-
 }
 
 int main(int argc, char *argv[]) {
