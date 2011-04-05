@@ -1,4 +1,7 @@
 #!/bin/sh
-gcc -c main.c -o main.o -O3 -g
-gcc -c droste.c -o droste.o -O3 -g
-gcc droste.o main.o -lm -o droste
+CFL='-O3 -g'
+LFL='-lm'
+
+gcc -c main.c -o main.o $CFL
+gcc -c droste.c -o droste.o $CFL
+gcc droste.o main.o -o droste $LFL
