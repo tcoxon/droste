@@ -79,6 +79,11 @@ int check_3x4x_bitmap(FILE *fp, BitmapFileHeader *file_header, uint32 size) {
     return 1;
 }
 
+void fix_bitmap(void) {
+    /* Don't ask me why, but width is padded to an even value when odd... */
+    if (width % 2 == 1) width ++;
+}
+
 int check_bitmap(FILE *fp) {
     BitmapFileHeader header;
     uint32 size;
@@ -264,6 +269,7 @@ int main(int argc, char *argv[]) {
             if (ofp == NULL) {
                 perror(out_fname);
             } else {
+                fix_bitmap();
                 inBitmap = alloc_bitmap();
                 outBitmap = alloc_bitmap();
 
