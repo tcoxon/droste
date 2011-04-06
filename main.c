@@ -6,6 +6,9 @@
 
 #include "droste.h"
 
+#define TRN_DROSTE 0
+#define TRN_LOGPOLAR 1
+
 typedef struct {
     uint16 fileType;    /* File type id (always 0x4d42 "BM") */
     uint32 fileSize;    /* Size of the file in bytes */
@@ -122,15 +125,41 @@ void put_info(void) {
     printf("Dimensions: %d x %d\nBitmap offset: 0x%x\nBPP: %d\n", width, height, bitmapOffset, bitsPerPixel);
 }
 
-void sprint_outfilename(char *outfile, char *infile) {
-    char *dotpos;
+void sprint_outfilename(char *outfile, char *infile, int transform, int lp_rotate, int lp_repeat) {
+    char *dotpos, *extension;
     strcpy(outfile, infile);
 
     dotpos = strrchr(outfile, '.');
     if (dotpos == NULL)
         dotpos = &outfile[strlen(outfile)];
 
-    strcpy(dotpos, "-droste.bmp");
+    switch (transform) {
+    case TRN_DROSTE:
+        extension = "-droste.bmp";
+        break;
+    case TRN_LOGPOLAR:
+        switch ((lp_repeat ? 1 : 0) | (lp_rotate ? 2 : 0)) {
+        case 0:
+            extension = "-logpolar.bmp";
+            break;
+        case 1:
+            extension = "-logpolar-repeat.bmp";
+            break;
+        case 2:
+            extension = "-logpolar-rotate.bmp";
+            break;
+        case 3:
+            extension = "-logpolar-repeat-rotate.bmp";
+            break;
+        default:
+            extension = "-logpolar-unknown.bmp";
+        }
+        break;
+    default:
+        extension = "-unknown.bmp";
+    }
+
+    strcpy(dotpos, extension);
     printf("Creating %s\n", outfile);
 }
 
@@ -237,59 +266,110 @@ void copy_headers(FILE *ofp, FILE *ifp) {
     }
 }
 
+void print_usage(void) {
+    fputs("Usage: droste image.bmp [--eog] [--logpolar]\n", stderr);
+    fputs("Options:\n", stderr);
+    fputs("    --eog      Runs eog (Eye of Gnome) after the image has been created\n", stderr);
+    fputs("    --logpolar Creates a partially-transformed image. These options may\n", stderr);
+    fputs("                 also be used:\n", stderr);
+    fputs("                   --logpolar-rotate\n", stderr);
+    fputs("                   --logpolar-repeat\n", stderr);
+    fputs("                   --logpolar-rotate-repeat\n", stderr);
+    fputs("Description: By default, droste will perform M.C. Escher's droste\n"
+          "  transformation to an image. If the input image is image.bmp, droste\n"
+          "  will output to image-droste.bmp\n"
+          "  Works best with 24-bit bitmap images. The centre pixel defines the\n"
+          "  transparent color.\n", stderr);
+}
+
 int main(int argc, char *argv[]) {
     int show_eog = 0;
+    char *filename = NULL;
+    int transform = TRN_DROSTE;
+    int lp_rotate = 0, lp_repeat = 0;
+    int i;
 
-    if (argc == 3 && strcmp(argv[2], "-eog") == 0) {
-        show_eog = 1;
-        argc = 2;
-    }
-
-    if (argc != 2) {
-        fputs("Usage: droste file.bmp\n", stderr);
-        return 1;
-    } else {
-        int retval = 0;
-        char *filename = argv[1];
-        char out_fname[64];
-        FILE *fp = fopen(filename, "r");
-
-        if (fp == NULL) {
-            perror(filename);
-            return 2;
-        }
-
-        if (!check_bitmap(fp)) {
-            retval = 3;
+    for (i = 1; i < argc; i++) {
+        char *arg = argv[i];
+        if (strcmp(arg, "--eog") == 0) {
+            show_eog = 1;
+        } else if (strcmp(arg, "--logpolar") == 0) {
+            transform = TRN_LOGPOLAR;
+            lp_rotate = lp_repeat = 0;
+        } else if (strcmp(arg, "--logpolar-rotate-repeat") == 0 ||
+            strcmp(arg, "--logpolar-repeat-rotate") == 0)
+        {
+            transform = TRN_LOGPOLAR;
+            lp_rotate = lp_repeat = 1;
+        } else if (strcmp(arg, "--logpolar-rotate") == 0) {
+            transform = TRN_LOGPOLAR;
+            lp_rotate = 1; lp_repeat = 0;
+        } else if (strcmp(arg, "--logpolar-repeat") == 0) {
+            transform = TRN_LOGPOLAR;
+            lp_repeat = 1; lp_rotate = 0;
+        } else if (filename == NULL && strcmp(arg, "--help") != 0) {
+            filename = arg;
         } else {
-            FILE *ofp;
-            put_info();
-            sprint_outfilename(out_fname, filename);
-            ofp = fopen(out_fname, "w");
-            if (ofp == NULL) {
-                perror(out_fname);
-            } else {
-                fix_bitmap();
-                inBitmap = alloc_bitmap();
-                outBitmap = alloc_bitmap();
-
-                copy_headers(ofp, fp);
-                read_bitmap(fp, inBitmap);
-                //transform_logpolar(outBitmap, inBitmap, 1,1);
-                transform_droste(outBitmap, inBitmap);
-                write_bitmap(ofp, outBitmap);
-
-                if (show_eog) {
-                    char buf[256];
-                    sprintf(buf, "eog %s", out_fname);
-                    retval = system(buf);
-                }
-
-                fclose(ofp);
-            }
+            print_usage();
+            return 1;
         }
-
-        fclose(fp);
-        return retval;
     }
+
+    if (filename == NULL) {
+        print_usage();
+        return 1;
+    }
+
+    int retval = 0;
+    char out_fname[64];
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL) {
+        perror(filename);
+        return 2;
+    }
+
+    if (!check_bitmap(fp)) {
+        retval = 3;
+    } else {
+        FILE *ofp;
+        put_info();
+        sprint_outfilename(out_fname, filename, transform, lp_rotate, lp_repeat);
+        ofp = fopen(out_fname, "w");
+        if (ofp == NULL) {
+            perror(out_fname);
+        } else {
+            fix_bitmap();
+            inBitmap = alloc_bitmap();
+            outBitmap = alloc_bitmap();
+
+            copy_headers(ofp, fp);
+            read_bitmap(fp, inBitmap);
+
+            switch (transform) {
+            case TRN_DROSTE:
+                transform_droste(outBitmap, inBitmap);
+                break;
+            case TRN_LOGPOLAR:
+                transform_logpolar(outBitmap, inBitmap, lp_rotate, lp_repeat);
+                break;
+            default:
+                fprintf(stderr, "Unknown transform: %d\n", transform);
+                exit(11);
+            }
+
+            write_bitmap(ofp, outBitmap);
+
+            if (show_eog) {
+                char buf[256];
+                sprintf(buf, "eog %s", out_fname);
+                retval = system(buf);
+            }
+
+            fclose(ofp);
+        }
+    }
+
+    fclose(fp);
+    return retval;
 }
