@@ -20,7 +20,7 @@ int pixel_eq(Pixel x, Pixel y) {
 /* Variables that are constant across a single image */
 static const double two_pi = 2.0 * M_PI;
 static double origin_x, origin_y;
-static double r1, r2, r2_over_r1;
+static double r1, r2, r2_over_r1, log_r1;
 static double a, period, cosa, sina, cosacosa, cosasina;
 
 /* Rotate the coordinates so that diagonal coincides with the imaginary
@@ -42,7 +42,7 @@ void rotate(double *rx, double *ry, double x, double y) {
         y' = atan(y/x)
  */
 void to_logpolar(double *rx, double *ry, double x, double y) {
-    *rx = log(sqrt(x*x + y*y));
+    *rx = log(sqrt(x*x + y*y)) - log_r1;
     *ry = atan2(y, x);
 }
 
@@ -52,7 +52,7 @@ void to_logpolar(double *rx, double *ry, double x, double y) {
     or  x' = cos(y) e**x
         y' = sin(y) e**x */
 void to_cartes(double *rx, double *ry, double x, double y) {
-    double e_x = exp(x);
+    double e_x = exp(x + log_r1);
     *rx = cos(y) * e_x;
     *ry = sin(y) * e_x;
 }
@@ -88,6 +88,7 @@ void init_transform(Pixel *bmp) {
     printf("r2 = %f, r1 = %f\n", r2, r1);
     
     r2_over_r1 = r2/r1;
+    log_r1 = log(r1);
 
     /* Set up some values that are constant across the image */
     period = log(r2_over_r1);
@@ -119,12 +120,12 @@ void transform(Pixel *obmp, Pixel *ibmp) {
         y *= two_pi / height;
 #else
         to_logpolar(&x, &y, x, y);
-        rotate(&x, &y, x, y);
 #endif
 
         for (j = -2; j < 10; j++) {
             double x1 = x, y1 = y;
             x1 += period*j;
+            rotate(&x1, &y1, x1, y1);
             to_cartes(&x1, &y1, x1, y1);
 
             x1 += origin_x;
