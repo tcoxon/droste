@@ -142,7 +142,7 @@ void transform_droste(Pixel *obmp, Pixel *ibmp) {
 
 void transform_logpolar(Pixel *obmp, Pixel *ibmp, int do_rotate, int do_repeat) {
     int i;
-    int repeat_min = -5, repeat_max = 4;
+    int repeat_min = -5, repeat_max = 5;
 
     if (!do_repeat)
         repeat_min = repeat_max = 0;
