@@ -99,8 +99,9 @@ void init_transform(Pixel *bmp) {
     cosasina = cosa*sina;
 }
 
-void transform(Pixel *obmp, Pixel *ibmp) {
+void transform_droste(Pixel *obmp, Pixel *ibmp) {
     int i;
+    int repeat_min = -2, repeat_max = 10;
 
     init_transform(ibmp);
 
@@ -114,18 +115,59 @@ void transform(Pixel *obmp, Pixel *ibmp) {
         x -= origin_x;
         y -= origin_y;
 
-#if 0
-        /* display the image in log-polar coordinates */
-        x *= log(sqrt(width*width+height*height)) * 4 / width;
-        y *= two_pi / height;
-#else
         to_logpolar(&x, &y, x, y);
-#endif
 
-        for (j = -2; j < 10; j++) {
+        for (j = repeat_min; j <= repeat_max; j++) {
             double x1 = x, y1 = y;
             x1 += period*j;
             rotate(&x1, &y1, x1, y1);
+            to_cartes(&x1, &y1, x1, y1);
+
+            x1 += origin_x;
+            y1 += origin_y;
+
+            if (0 <= x1 && x1 < width &&
+                0 <= y1 && y1 < height)
+            {
+                k = (int)x1 + (int)y1 * width;
+                if (!pixel_eq(ibmp[k], transpColor)) {
+                    obmp[i] = ibmp[k];
+                    break;
+                }
+            }
+        }
+    }
+
+}
+
+void transform_logpolar(Pixel *obmp, Pixel *ibmp, int do_rotate, int do_repeat) {
+    int i;
+    int repeat_min = -5, repeat_max = 4;
+
+    if (!do_repeat)
+        repeat_min = repeat_max = 0;
+
+    init_transform(ibmp);
+
+    for (i = 0; i < width*height; i++) {
+        int j, k;
+        double x = i % width,
+               y = i / width;
+
+        obmp[i] = transpColor;
+
+        x -= origin_x;
+        y -= origin_y;
+
+        /* display the image in log-polar coordinates */
+        x *= log(r2) / width;
+        y *= two_pi / height;
+
+        for (j = repeat_min; j <= repeat_max; j++) {
+            double x1 = x, y1 = y;
+            x1 += period*j;
+            if (do_rotate)
+                rotate(&x1, &y1, x1, y1);
             to_cartes(&x1, &y1, x1, y1);
 
             x1 += origin_x;

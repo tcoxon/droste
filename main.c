@@ -275,7 +275,8 @@ int main(int argc, char *argv[]) {
 
                 copy_headers(ofp, fp);
                 read_bitmap(fp, inBitmap);
-                transform(outBitmap, inBitmap);
+                //transform_logpolar(outBitmap, inBitmap, 1,1);
+                transform_droste(outBitmap, inBitmap);
                 write_bitmap(ofp, outBitmap);
 
                 if (show_eog) {
