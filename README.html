@@ -1,0 +1,75 @@
+<h1>droste</h1>
+
+<p>Applies the Droste effect transformation to an image.</p>
+
+<h2>The Droste Effect</h2>
+
+<p>The Droste effect is a kind of recursive image, first known to appear in
+<a href="http://escherdroste.math.leidenuniv.nl/index.php?menu=escher&amp;sub=orig">M.C. Escher's Print Gallery</a>.</p>
+
+<p>The mathematical description of the Droste effect was not discovered until 2003,
+by a group of mathematicians at Leiden University, led by Prof. Hendrik Lenstra.
+The following web page describes how the effect is applied:</p>
+
+<ul>
+<li><a href="http://www.josleys.com/article_show.php?id=82">http://www.josleys.com/article_show.php?id=82</a></li>
+</ul>
+
+<h2>Build Instructions</h2>
+
+<p>droste doesn't have a real build system at the moment, only a shell script that
+invokes the compiler. To build, you must have sh and gcc on your path, then:</p>
+
+<pre><code>$ ./build.sh
+</code></pre>
+
+<h2>Usage</h2>
+
+<pre><code>$ ./droste image.bmp [--eog] [--logpolar]
+</code></pre>
+
+<h3>Options</h3>
+
+<ul>
+<li><code>--eog</code> executes <code>eog</code> (Eye of Gnome) after the image has been created</li>
+<li><code>--logpolar</code> creates a partially-transformed image. These options may also
+be used:
+<ul>
+<li><code>--logpolar-rotate</code></li>
+<li><code>--logpolar-repeat</code></li>
+<li><code>--logpolar-rotate-repeat</code></li>
+</ul></li>
+</ul>
+
+<h3>Description</h3>
+
+<p>By default, droste will perform the full Droste effect transformation. If the
+input image is <code>image.bmp</code>, droste will write the output to <code>image-droste.bmp</code>.</p>
+
+<p>droste supports 24-bit and 32-bit bitmap images. 32-bit bitmaps sort of work,
+but colors in the output are all wrong. 24-bit is recommended.</p>
+
+<p>The centre pixel defines the color of the transparent area of the image.</p>
+
+<p>Start off with your original image:</p>
+
+<p><img src="https://github.com/downloads/tcoxon/droste/wallpicture-original.jpg" alt="Original image" title="Original image" /></p>
+
+<p>To perform the transformation, a portion of the image needs to be marked as
+'transparent'. Fill out an area with a single color (one not used elsewhere in
+the image) like below, and save the image as a 24-bit bitmap. It works best if the
+transparent area is small in comparison to the whole image.</p>
+
+<p><img src="https://github.com/downloads/tcoxon/droste/wallpicture.jpg" alt="Transparent image" title="Transparent image" /></p>
+
+<p>droste will first transform the image into log-polar coordinates:</p>
+
+<p><img src="https://github.com/downloads/tcoxon/droste/wallpicture-logpolar.jpg" alt="Log-polar coordinates" title="Log-polar coordinates" /></p>
+
+<p>It will then repeat the image horizontally and rotate it slightly:</p>
+
+<p><img src="https://github.com/downloads/tcoxon/droste/wallpicture-logpolar-repeat-rotate.jpg" alt="Log-polar rotated and repeated" title="Log-polar rotated and repeated" /></p>
+
+<p>Finally, the image is transformed back into cartesian coordinates, and the Droste transformation is complete:</p>
+
+<p><img src="https://github.com/downloads/tcoxon/droste/wallpicture-droste.jpg" alt="Droste effect example" title="Droste effect example" /></p>
